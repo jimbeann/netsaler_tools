@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetScaler Config Extractor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-6">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4 text-center">NetScaler Configuration Extractor / Visualizer</h1>
+
+    <textarea id="configInput" rows="10" class="w-full p-3 rounded border border-gray-400 mb-4" placeholder="Paste your NetScaler CLI config here..."></textarea>
+    <div class="flex gap-2 mb-4">
+      <button onclick="parseConfig()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Extract & Visualize</button>
+      <input id="searchInput" onkeyup="filterOutput()" placeholder="Search..." class="px-3 py-2 rounded border border-gray-400 flex-1">
+      <button onclick="exportOutput()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Export</button>
+    </div>
+
+    <div id="output" class="mt-6 space-y-4"></div>
+  </div>
+
+  <script>
+    function parseConfig() {
+      const input = document.getElementById("configInput").value;
+      const output = document.getElementById("output");
+      output.innerHTML = "";
+
+      const vipRegex = /add lb vserver (\S+) (\S+) ([\d.]+) (\d+)(.*)/g;
+      const bindServiceRegex = /bind lb vserver (\S+) (\S+)/g;
+      const serviceGroupRegex = /add serviceGroup (\S+) (\S+) (\S+) (\d+)/g;
+      const serviceGroupMemberRegex = /bind serviceGroup (\S+) (\S+) (\d+)/g;
+      const policyRegex = /bind lb vserver (\S+) -policyName (\S+) .*?-(rewrite|responder)/g;
+      const sslCertRegex = /bind ssl vserver (\S+) -certkeyName (\S+)/g;
+      const monitorRegex = /bind lb vserver (\S+) -monitorName (\S+)/g;
+      const persistRegex = /set lb vserver (\S+) .*?-persistenceType (\S+)/g;
+      const redirectRegex = /add responder action (\S+) redirect .*? -target \"(.*?)\"/g;
+
+      const vips = [...input.matchAll(vipRegex)].map(m => ({
+        name: m[1], type: m[2], ip: m[3], port: m[4], extra: m[5], services: [], policies: [], sslcerts: [], monitors: [], persistence: null
+      }));
+
+      const serviceBindings = [...input.matchAll(bindServiceRegex)];
+      const policyBindings = [...input.matchAll(policyRegex)];
+      const sslBindings = [...input.matchAll(sslCertRegex)];
+      const monitorBindings = [...input.matchAll(monitorRegex)];
+      const persistConfigs = [...input.matchAll(persistRegex)];
+      const redirectActions = [...input.matchAll(redirectRegex)].map(m => `Action: ${m[1]} → ${m[2]}`);
+
+      const serviceGroups = [...input.matchAll(serviceGroupRegex)].map(m => ({
+        name: m[1], type: m[2], ip: m[3], port: m[4], members: []
+      }));
+      const groupMembers = [...input.matchAll(serviceGroupMemberRegex)];
+
+      for (const [_, vip, service] of serviceBindings) {
+        const v = vips.find(v => v.name === vip);
+        if (v) v.services.push(service);
+      }
+
+      for (const [_, vip, policy, type] of policyBindings) {
+        const v = vips.find(v => v.name === vip);
+        if (v) v.policies.push(`${type}: ${policy}`);
+      }
+
+      for (const [_, vip, cert] of sslBindings) {
+        const v = vips.find(v => v.name === vip);
+        if (v) v.sslcerts.push(cert);
+      }
+
+      for (const [_, vip, monitor] of monitorBindings) {
+        const v = vips.find(v => v.name === vip);
+        if (v) v.monitors.push(monitor);
+      }
+
+      for (const [_, vip, persist] of persistConfigs) {
+        const v = vips.find(v => v.name === vip);
+        if (v) v.persistence = persist;
+      }
+
+      for (const [_, sg, ip, port] of groupMembers) {
+        const g = serviceGroups.find(g => g.name === sg);
+        if (g) g.members.push(`${ip}:${port}`);
+      }
+
+      vips.forEach(v => {
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded shadow vip-entry";
+        card.innerHTML = `
+          <h2 class="text-xl font-semibold mb-2">VIP: ${v.name}</h2>
+          <p><strong>Type:</strong> ${v.type}</p>
+          <p><strong>IP:</strong> ${v.ip}</p>
+          <p><strong>Port:</strong> ${v.port}</p>
+          ${v.services.length ? `<p><strong>Bound Services:</strong> ${v.services.join(", ")}</p>` : ""}
+          ${v.policies.length ? `<p><strong>Policies:</strong> ${v.policies.join(", ")}</p>` : ""}
+          ${v.sslcerts.length ? `<p><strong>SSL Certs:</strong> ${v.sslcerts.join(", ")}</p>` : ""}
+          ${v.monitors.length ? `<p><strong>Monitors:</strong> ${v.monitors.join(", ")}</p>` : ""}
+          ${v.persistence ? `<p><strong>Persistence:</strong> ${v.persistence}</p>` : ""}
+        `;
+        output.appendChild(card);
+      });
+
+      if (serviceGroups.length > 0) {
+        const sgHeader = document.createElement("h3");
+        sgHeader.className = "text-2xl font-semibold mt-6";
+        sgHeader.textContent = "Service Groups";
+        output.appendChild(sgHeader);
+
+        serviceGroups.forEach(sg => {
+          const card = document.createElement("div");
+          card.className = "bg-white p-4 rounded shadow vip-entry";
+          card.innerHTML = `
+            <h2 class="text-lg font-semibold mb-2">${sg.name}</h2>
+            <p><strong>Type:</strong> ${sg.type}</p>
+            <p><strong>Members:</strong> ${sg.members.length > 0 ? sg.members.join(", ") : "None"}</p>
+          `;
+          output.appendChild(card);
+        });
+      }
+
+      if (redirectActions.length > 0) {
+        const rHeader = document.createElement("h3");
+        rHeader.className = "text-2xl font-semibold mt-6";
+        rHeader.textContent = "Redirect Actions";
+        output.appendChild(rHeader);
+
+        redirectActions.forEach(action => {
+          const p = document.createElement("p");
+          p.className = "bg-white p-3 rounded shadow";
+          p.textContent = action;
+          output.appendChild(p);
+        });
+      }
+    }
+
+    function filterOutput() {
+      const term = document.getElementById("searchInput").value.toLowerCase();
+      document.querySelectorAll(".vip-entry").forEach(entry => {
+        entry.style.display = entry.textContent.toLowerCase().includes(term) ? "block" : "none";
+      });
+    }
+
+    function exportOutput() {
+      const content = document.getElementById("output").innerText;
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "netscaler_config_summary.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+
+</html>

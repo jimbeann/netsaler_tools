@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetScaler CLI Script Generator</title>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, Arial, sans-serif;
+      background: #f9fafb;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+      color: #2d3748;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      background: #2d3748;
+      color: #ffffff;
+    }
+    .tab {
+      flex: 1;
+      padding: 16px;
+      cursor: pointer;
+      text-align: center;
+      background: #4a5568;
+      transition: all 0.2s ease;
+    }
+    .tab:hover {
+      background: #718096;
+      transform: scale(1.02);
+    }
+    .tab[aria-selected="true"] {
+      background: #38b2ac;
+    }
+    .tab-content {
+      display: none;
+      padding: 24px;
+      animation: fadeIn 0.3s ease;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    input, select, button, textarea {
+      margin: 8px 0;
+      padding: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #ffffff;
+      transition: all 0.2s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #38b2ac;
+      box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.3);
+    }
+    button {
+      background: #38b2ac;
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 12px;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background: #319795;
+      transform: scale(1.05);
+    }
+    button:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 200px;
+      background: #f7fafc;
+      border-color: #e2e8f0;
+    }
+    .btn-copy, .btn-reset {
+      padding: 12px;
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .member-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      margin-bottom: 12px;
+      animation: slideIn 0.3s ease;
+    }
+    .cs-policy-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px;
+      margin-bottom: 12px;
+      animation: slideIn 0.3s ease;
+    }
+    .policy-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto;
+      gap: 12px;
+      margin-bottom: 12px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .error {
+      color: #e53e3e;
+      font-size: 12px;
+      margin-top: -4px;
+      margin-bottom: 6px;
+      display: none;
+    }
+    .error.show {
+      display: block;
+    }
+    .warning {
+      color: #d69e2e;
+      font-size: 12px;
+      margin-top: -4px;
+      margin-bottom: 6px;
+      display: none;
+    }
+    .warning.show {
+      display: block;
+    }
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 4px;
+      cursor: help;
+    }
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 220px;
+      background: #2d3748;
+      color: #ffffff;
+      text-align: center;
+      padding: 8px;
+      border-radius: 6px;
+      position: absolute;
+      z-index: 10;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      font-size: 12px;
+    }
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #2d3748;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 6px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: toastIn 0.5s forwards, toastOut 0.5s 2.5s forwards;
+    }
+    .toast.error {
+      background: #e53e3e;
+    }
+    .toast.success {
+      background: #38b2ac;
+    }
+    @keyframes toastIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(20px); }
+    }
+    .hidden {
+      display: none;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+    h2, h3 {
+      color: #2d3748;
+      margin-top: 0;
+    }
+    .section {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f7fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tabs" role="tablist">
+      <div class="tab" role="tab" aria-selected="true" aria-controls="input" id="tab-input" onclick="showTab('input')">Input</div>
+      <div class="tab" role="tab" aria-selected="false" aria-controls="script" id="tab-script" onclick="showTab('script')">Generated Script</div>
+      <div class="tab" role="tab" aria-selected="false" aria-controls="rollback" id="tab-rollback" onclick="showTab('rollback')">Rollback Script</div>
+    </div>
+
+    <div id="input" class="tab-content active" role="tabpanel" aria-labelledby="tab-input">
+      <h2>NetScaler CLI Generator</h2>
+      <div class="section">
+        <label for="vipName">VIP Name <span class="tooltip">?<span class="tooltip-text">Name your virtual server. Example: web_vip</span></span></label>
+        <input id="vipName" type="text" placeholder="e.g., web_vip">
+        <div id="vipName-error" class="error"></div>
+
+        <label for="vipIP">VIP IP <span class="tooltip">?<span class="tooltip-text">Public IP for the VIP. Example: 192.168.1.100</span></span></label>
+        <input id="vipIP" type="text" placeholder="e.g., 192.168.1.100">
+        <div id="vipIP-error" class="error"></div>
+
+        <label for="vipType">VIP Type <span class="tooltip">?<span class="tooltip-text">Protocol for the VIP. SSL for HTTPS, DNS for name servers.</span></span></label>
+        <select id="vipType" onchange="toggleSSLFields(); updateServiceTypeOptions()">
+          <option value="SSL">SSL</option>
+          <option value="HTTP">HTTP</option>
+          <option value="TCP">TCP</option>
+          <option value="SSL_BRIDGE">SSL_BRIDGE</option>
+          <option value="DNS">DNS</option>
+          <option value="SIP-UDP">SIP-UDP</option>
+          <option value="RADIUS">RADIUS</option>
+        </select>
+
+        <label for="vipPort">Custom Port <span class="tooltip">?<span class="tooltip-text">Optional port (1–65535). Defaults: 443 (SSL), 80 (HTTP), 53 (DNS), 8080 (others).</span></span></label>
+        <input id="vipPort" type="text" placeholder="Default based on VIP type">
+        <div id="vipPort-error" class="error"></div>
+
+        <label for="lbMethod">Load Balancing Method <span class="tooltip">?<span class="tooltip-text">How traffic is distributed to servers. Round Robin is default.</span></span></label>
+        <select id="lbMethod">
+          <option value="ROUNDROBIN">Round Robin</option>
+          <option value="LEASTCONNECTION">Least Connection</option>
+          <option value="SOURCEIPHASH">Source IP Hash</option>
+          <option value="LEASTRESPONSETIME">Least Response Time</option>
+        </select>
+
+        <label for="persistenceType">Persistence Type <span class="tooltip">?<span class="tooltip-text">Ensures clients stay with the same server. SOURCEIP for databases, COOKIEINSERT for web apps.</span></span></label>
+        <select id="persistenceType" onchange="togglePersistenceFields()">
+          <option value="NONE">None</option>
+          <option value="SOURCEIP">Source IP</option>
+          <option value="COOKIEINSERT">Cookie Insert</option>
+          <option value="RULE">Rule</option>
+        </select>
+        <div id="persistenceTimeout" class="hidden">
+          <label for="timeout">Timeout (minutes, optional) <span class="tooltip">?<span class="tooltip-text">Time to maintain persistence (1–1440). Defaults to NetScaler default if blank.</span></span></label>
+          <input id="timeout" type="text" placeholder="e.g., 30">
+          <div id="timeout-error" class="error"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <label><input type="checkbox" id="enableCS" onchange="toggleCSFields()"> Enable Content Switching <span class="tooltip">?<span class="tooltip-text">Routes traffic by URL. Example: /api/* to API servers.</span></span></label>
+        <div id="csFields" class="hidden">
+          <label for="csVIPName">CS VIP Name <span class="tooltip">?<span class="tooltip-text">Name for the Content Switching VIP. Example: cs_vip</span></span></label>
+          <input id="csVIPName" type="text" placeholder="e.g., cs_vip">
+          <div id="csVIPName-error" class="error"></div>
+
+          <label for="csVIPPort">CS VIP Port <span class="tooltip">?<span class="tooltip-text">Port for the CS VIP. Default: 80 (HTTP), 443 (SSL).</span></span></label>
+          <input id="csVIPPort" type="text" placeholder="Default based on VIP type">
+          <div id="csVIPPort-error" class="error"></div>
+
+          <h3>CS Policies</h3>
+          <div id="csPolicyList"></div>
+          <button onclick="addCSPolicy()" aria-label="Add CS Policy">+ Add Policy</button>
+          <div id="csPolicyList-error" class="error"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <label><input type="checkbox" id="enablePolicies" onchange="togglePolicyFields()"> Enable Rewrite/Responder Policies <span class="tooltip">?<span class="tooltip-text">Modify or redirect requests. Example: Add X-Custom header or redirect /old to /new.</span></span></label>
+        <div id="policyFields" class="hidden">
+          <h3>Policies</h3>
+          <div id="policyList"></div>
+          <button onclick="addPolicy()" aria-label="Add Policy">+ Add Policy</button>
+          <div id="policyList-error" class="error"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <label for="svcGroupName">Service Group Name <span class="tooltip">?<span class="tooltip-text">Name for the backend service group. Example: web_svc</span></span></label>
+        <input id="svcGroupName" type="text" placeholder="e.g., web_svc">
+        <div id="svcGroupName-error" class="error"></div>
+
+        <label for="svcType">Service Group Type <span class="tooltip">?<span class="tooltip-text">Protocol for backend servers. Matches VIP Type.</span></span></label>
+        <select id="svcType">
+          <option value="SSL">SSL</option>
+          <option value="HTTP">HTTP</option>
+          <option value="TCP">TCP</option>
+          <option value="SSL_BRIDGE">SSL_BRIDGE</option>
+          <option value="DNS">DNS</option>
+          <option value="ANY">ANY</option>
+          <option value="SIP-UDP">SIP-UDP</option>
+          <option value="RADIUS">RADIUS</option>
+          <option value="MYSQL">MYSQL</option>
+          <option value="MSSQL">MSSQL</option>
+        </select>
+        <div id="svcType-error" class="error"></div>
+        <div id="svcType-warning" class="warning"></div>
+
+        <label for="backendPort">Backend Port <span class="tooltip">?<span class="tooltip-text">Port for backend servers. Example: 8080</span></span></label>
+        <input id="backendPort" type="text" placeholder="e.g., 8080">
+        <div id="backendPort-error" class="error"></div>
+
+        <div id="certFields" class="hidden">
+          <label for="certKey">Certificate Key Name <span class="tooltip">?<span class="tooltip-text">Name for the SSL certificate key. Example: my-cert</span></span></label>
+          <input id="certKey" type="text" placeholder="e.g., my-cert">
+          <div id="certKey-error" class="error"></div>
+
+          <label for="certFile">Certificate File (.crt) <span class="tooltip">?<span class="tooltip-text">SSL certificate file. Example: my-cert.crt</span></span></label>
+          <input id="certFile" type="text" placeholder="e.g., my-cert.crt">
+          <div id="certFile-error" class="error"></div>
+
+          <label for="keyFile">Key File (.key) <span class="tooltip">?<span class="tooltip-text">SSL key file. Example: my-cert.key</span></span></label>
+          <input id="keyFile" type="text" placeholder="e.g., my-cert.key">
+          <div id="keyFile-error" class="error"></div>
+        </div>
+
+        <label><input type="checkbox" id="backendSSL"> Enable backend SSL <span class="tooltip">?<span class="tooltip-text">Check if backend servers require SSL certificates.</span></span></label>
+
+        <label><input type="checkbox" id="customMonitor" onchange="toggleMonitorFields()"> Customize Monitor <span class="tooltip">?<span class="tooltip-text">Configure custom monitor for backend health checks.</span></span></label>
+        <div id="monitorFields" class="hidden">
+          <label for="monitorName">Monitor Name <span class="tooltip">?<span class="tooltip-text">Name for the monitor. Example: custom_mon</span></span></label>
+          <input id="monitorName" type="text" placeholder="e.g., custom_mon">
+          <div id="monitorName-error" class="error"></div>
+
+          <label for="monitorInterval">Interval (seconds) <span class="tooltip">?<span class="tooltip-text">Time between health checks (1–3600).</span></span></label>
+          <input id="monitorInterval" type="text" placeholder="e.g., 5">
+          <div id="monitorInterval-error" class="error"></div>
+
+          <label for="monitorTimeout">Timeout (seconds) <span class="tooltip">?<span class="tooltip-text">Time to wait for a response (1–3600).</span></span></label>
+          <input id="monitorTimeout" type="text" placeholder="e.g., 3">
+          <div id="monitorTimeout-error" class="error"></div>
+        </div>
+
+        <h3>Backend Members</h3>
+        <div id="memberList"></div>
+        <button onclick="addMember()" aria-label="Add Backend Member">+ Add Member</button>
+        <div id="memberList-error" class="error"></div>
+      </div>
+
+      <div class="section">
+        <label><input type="checkbox" id="genRollback"> Generate rollback script <span class="tooltip">?<span class="tooltip-text">Creates commands to undo the configuration.</span></span></label>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+          <button onclick="generateScript()">Generate CLI Script</button>
+          <button class="btn-reset" onclick="resetForm()" aria-label="Reset Form">Reset Form</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="script" class="tab-content" role="tabpanel" aria-labelledby="tab-script">
+      <h2>Generated CLI Script</h2>
+      <textarea id="cliOutput" readonly aria-label="Generated CLI Script"></textarea>
+      <button class="btn-copy" onclick="copyToClipboard('cliOutput')" aria-label="Copy Generated Script">📋 Copy Script</button>
+    </div>
+
+    <div id="rollback" class="tab-content" role="tabpanel" aria-labelledby="tab-rollback">
+      <h2>Rollback CLI Script</h2>
+      <textarea id="rollbackOutput" readonly aria-label="Rollback CLI Script"></textarea>
+      <button class="btn-copy" onclick="copyToClipboard('rollbackOutput')" aria-label="Copy Rollback Script">📋 Copy Rollback Script</button>
+    </div>
+  </div>
+
+  <script>
+    let memberCount = 0;
+    let csPolicyCount = 0;
+    let policyCount = 0;
+    const maxMembers = 100;
+    const maxPolicies = 50;
+    let sslAlertShown = false;
+
+    // Compatibility matrix for VIP Type and Service Group Type
+    const compatMatrix = {
+      SSL: ['SSL', 'HTTP', 'TCP'],
+      HTTP: ['HTTP', 'TCP'],
+      TCP: ['TCP', 'ANY', 'MYSQL', 'MSSQL'],
+      SSL_BRIDGE: ['SSL_BRIDGE'],
+      DNS: ['DNS'],
+      'SIP-UDP': ['SIP-UDP'],
+      RADIUS: ['RADIUS']
+    };
+
+    // Warning matrix for uncommon combinations
+    const warningMatrix = {
+      HTTP: ['TCP'],
+      SSL: ['TCP']
+    };
+
+    // Map Service Group Type to default monitor type
+    const monitorMap = {
+      SSL: 'SSL',
+      HTTP: 'HTTP',
+      TCP: 'TCP',
+      SSL_BRIDGE: 'TCP',
+      DNS: 'DNS',
+      ANY: 'TCP',
+      'SIP-UDP': 'SIP-UDP',
+      RADIUS: 'RADIUS',
+      MYSQL: 'TCP',
+      MSSQL: 'TCP'
+    };
+
+    // Predefined expressions for Rewrite/Responder
+    const predefinedExpressions = [
+      {
+        label: 'URL contains text',
+        value: 'URL_CONTAINS',
+        template: 'HTTP.REQ.URL.PATH.CONTAINS("<text>")',
+        tooltip: 'Matches if URL path contains specific text (e.g., "page").'
+      },
+      {
+        label: 'URL starts with',
+        value: 'URL_STARTSWITH',
+        template: 'HTTP.REQ.URL.PATH.STARTSWITH("<text>")',
+        tooltip: 'Matches if URL path starts with text (e.g., "/api").'
+      },
+      {
+        label: 'Hostname is',
+        value: 'HOSTNAME_EQ',
+        template: 'HTTP.REQ.HOSTNAME.EQ("<host>")',
+        tooltip: 'Matches if hostname equals value (e.g., "example.com").'
+      },
+      {
+        label: 'Client IP is',
+        value: 'CLIENT_IP_EQ',
+        template: 'CLIENT.IP.SRC.EQ("<ip>")',
+        tooltip: 'Matches if client IP equals value (e.g., "192.168.1.10").'
+      },
+      {
+        label: 'Custom',
+        value: 'CUSTOM',
+        template: '',
+        tooltip: 'Enter a custom NetScaler expression.'
+      }
+    ];
+
+    // Tab Navigation
+    function showTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.setAttribute('aria-selected', 'false');
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      const selectedTab = document.querySelector(`#tab-${tabId}`);
+      selectedTab.setAttribute('aria-selected', 'true');
+      selectedTab.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // Backend Members
+    function addMember() {
+      if (memberCount >= maxMembers) {
+        showToast('Maximum members reached.', 'error');
+        return;
+      }
+      memberCount++;
+      const row = document.createElement('div');
+      row.className = 'member-row';
+      row.innerHTML = `
+        <div>
+          <input type="text" placeholder="Server Name" id="srv${memberCount}" aria-label="Server Name ${memberCount}">
+          <div id="srv${memberCount}-error" class="error"></div>
+        </div>
+        <div>
+          <input type="text" placeholder="IP Address" id="ip${memberCount}" aria-label="Server IP ${memberCount}">
+          <div id="ip${memberCount}-error" class="error"></div>
+        </div>
+        <button onclick="removeMember(this)" aria-label="Remove Member">❌</button>
+      `;
+      const memberList = document.getElementById('memberList');
+      if (memberList) {
+        memberList.appendChild(row);
+        validateForm();
+      } else {
+        console.error('memberList element not found');
+        showToast('Error adding member.', 'error');
+        memberCount--;
+      }
+    }
+
+    function removeMember(btn) {
+      btn.parentElement.remove();
+      memberCount--;
+      validateForm();
+    }
+
+    // Content Switching Policies
+    function addCSPolicy() {
+      if (csPolicyCount >= maxPolicies) {
+        showToast('Maximum CS policies reached.', 'error');
+        return;
+      }
+      csPolicyCount++;
+      const row = document.createElement('div');
+      row.className = 'cs-policy-row';
+      row.innerHTML = `
+        <div>
+          <input type="text" placeholder="Policy Name" id="csPolName${csPolicyCount}" aria-label="CS Policy Name ${csPolicyCount}">
+          <div id="csPolName${csPolicyCount}-error" class="error"></div>
+        </div>
+        <div>
+          <input type="text" placeholder="URL Pattern (e.g., /api/*)" id="csURL${csPolicyCount}" aria-label="CS URL Pattern ${csPolicyCount}">
+          <div id="csURL${csPolicyCount}-error" class="error"></div>
+        </div>
+        <div>
+          <select id="csTarget${csPolicyCount}" aria-label="CS Target Service Group ${csPolicyCount}">
+            <option value="">Select Service Group</option>
+            <option value="${val('svcGroupName')}">${val('svcGroupName') || 'Main Service Group'}</option>
+          </select>
+          <div id="csTarget${csPolicyCount}-error" class="error"></div>
+        </div>
+        <button onclick="removeCSPolicy(this)" aria-label="Remove CS Policy">❌</button>
+      `;
+      const csPolicyList = document.getElementById('csPolicyList');
+      if (csPolicyList) {
+        csPolicyList.appendChild(row);
+        validateForm();
+      } else {
+        console.error('csPolicyList element not found');
+        showToast('Error adding CS policy.', 'error');
+        csPolicyCount--;
+      }
+    }
+
+    function removeCSPolicy(btn) {
+      btn.parentElement.remove();
+      csPolicyCount--;
+      validateForm();
+    }
+
+    // Rewrite/Responder Policies
+    function addPolicy() {
+      if (policyCount >= maxPolicies) {
+        showToast('Maximum policies reached.', 'error');
+        return;
+      }
+      policyCount++;
+      const row = document.createElement('div');
+      row.className = 'policy-row';
+      row.innerHTML = `
+        <div>
+          <select id="polType${policyCount}" aria-label="Policy Type ${policyCount}">
+            <option value="Rewrite">Rewrite</option>
+            <option value="Responder">Responder</option>
+          </select>
+        </div>
+        <div>
+          <input type="text" placeholder="Policy Name" id="polName${policyCount}" aria-label="Policy Name ${policyCount}">
+          <div id="polName${policyCount}-error" class="error"></div>
+        </div>
+        <div>
+          <select id="polAction${policyCount}" aria-label="Policy Action ${policyCount}">
+            <option value="">Select Action</option>
+            <option value="INSERT_HTTP_HEADER">Insert HTTP Header</option>
+            <option value="DELETE_HTTP_HEADER">Delete HTTP Header</option>
+            <option value="REDIRECT">Redirect</option>
+            <option value="RESPONDWITH">Respond With</option>
+          </select>
+          <div id="polAction${policyCount}-error" class="error"></div>
+        </div>
+        <div>
+          <select id="polExprType${policyCount}" aria-label="Policy Expression Type ${policyCount}">
+            ${predefinedExpressions.map(expr => `<option value="${expr.value}">${expr.label}</option>`).join('')}
+          </select>
+          <span class="tooltip">?<span class="tooltip-text" id="polExprTooltip${policyCount}">${predefinedExpressions[0].tooltip}</span></span>
+          <div id="polExprType${policyCount}-error" class="error"></div>
+        </div>
+        <div id="polExprValueField${policyCount}">
+          <input type="text" placeholder="Expression Value (e.g., page)" id="polExprValue${policyCount}" aria-label="Policy Expression Value ${policyCount}">
+          <div id="polExprValue${policyCount}-error" class="error"></div>
+        </div>
+        <div id="polExprCustomField${policyCount}" class="hidden">
+          <input type="text" placeholder="Custom Expression" id="polExprCustom${policyCount}" aria-label="Policy Custom Expression ${policyCount}">
+          <div id="polExprCustom${policyCount}-error" class="error"></div>
+        </div>
+        <div>
+          <input type="text" placeholder="Action Value (e.g., X-Custom: value)" id="polValue${policyCount}" aria-label="Policy Action Value ${policyCount}">
+          <div id="polValue${policyCount}-error" class="error"></div>
+        </div>
+        <button onclick="removePolicy(this)" aria-label="Remove Policy">❌</button>
+      `;
+      const policyList = document.getElementById('policyList');
+      if (policyList) {
+        policyList.appendChild(row);
+        document.getElementById(`polType${policyCount}`).addEventListener('change', () => updatePolicyActionOptions(policyCount));
+        document.getElementById(`polExprType${policyCount}`).addEventListener('change', () => updatePolicyExpressionFields(policyCount));
+        updatePolicyActionOptions(policyCount);
+        updatePolicyExpressionFields(policyCount);
+        validateForm();
+      } else {
+        console.error('policyList element not found');
+        showToast('Error adding policy.', 'error');
+        policyCount--;
+      }
+    }
+
+    function removePolicy(btn) {
+      btn.parentElement.remove();
+      policyCount--;
+      validateForm();
+    }
+
+    function updatePolicyActionOptions(count) {
+      const polType = val(`polType${count}`);
+      const actionSelect = document.getElementById(`polAction${count}`);
+      actionSelect.innerHTML = '<option value="">Select Action</option>';
+      const options = polType === 'Rewrite' ?
+        ['INSERT_HTTP_HEADER', 'DELETE_HTTP_HEADER'] :
+        ['REDIRECT', 'RESPONDWITH'];
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt.replace(/_/g, ' ');
+        actionSelect.appendChild(option);
+      });
+      validateForm();
+    }
+
+    function updatePolicyExpressionFields(count) {
+      const exprType = val(`polExprType${count}`);
+      const valueField = document.getElementById(`polExprValueField${count}`);
+      const customField = document.getElementById(`polExprCustomField${count}`);
+      const tooltip = document.getElementById(`polExprTooltip${count}`);
+      const exprDef = predefinedExpressions.find(e => e.value === exprType);
+      valueField.classList.toggle('hidden', exprType === 'CUSTOM');
+      customField.classList.toggle('hidden', exprType !== 'CUSTOM');
+      tooltip.textContent = exprDef ? exprDef.tooltip : '';
+      validateForm();
+    }
+
+    // Update Service Group Type Options
+    function updateServiceTypeOptions() {
+      const vipType = val('vipType');
+      const svcTypeSelect = document.getElementById('svcType');
+      const currentSvcType = svcTypeSelect.value;
+      const allowedTypes = compatMatrix[vipType] || ['HTTP'];
+      svcTypeSelect.innerHTML = '';
+      allowedTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        svcTypeSelect.appendChild(option);
+      });
+      svcTypeSelect.value = allowedTypes.includes(currentSvcType) ? currentSvcType : allowedTypes[0];
+      validateForm();
+    }
+
+    // Clipboard API
+    async function copyToClipboard(id) {
+      const text = document.getElementById(id).value;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard!', 'success');
+      } catch (err) {
+        const textarea = document.getElementById(id);
+        textarea.select();
+        document.execCommand('copy');
+        showToast('Copied to clipboard!', 'success');
+      }
+    }
+
+    // Toast Notifications
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Toggle Conditional Fields
+    function toggleSSLFields() {
+      const type = val('vipType');
+      const certFields = document.getElementById('certFields');
+      const isSSL = type === 'SSL';
+      certFields.classList.toggle('hidden', !isSSL);
+      if (isSSL && !sslAlertShown) {
+        window.alert('Upload your .crt and .key files to /nsconfig/ssl/ on the NetScaler. The script will import and bind them.');
+        sslAlertShown = true;
+      }
+      validateForm();
+    }
+
+    function togglePersistenceFields() {
+      const type = val('persistenceType');
+      const timeoutField = document.getElementById('persistenceTimeout');
+      timeoutField.classList.toggle('hidden', type === 'NONE');
+      validateForm();
+    }
+
+    function toggleCSFields() {
+      const checked = document.getElementById('enableCS').checked;
+      const csFields = document.getElementById('csFields');
+      csFields.classList.toggle('hidden', !checked);
+      if (!checked) {
+        document.getElementById('csPolicyList').innerHTML = '';
+        csPolicyCount = 0;
+      }
+      validateForm();
+    }
+
+    function togglePolicyFields() {
+      const checked = document.getElementById('enablePolicies').checked;
+      const policyFields = document.getElementById('policyFields');
+      policyFields.classList.toggle('hidden', !checked);
+      if (!checked) {
+        document.getElementById('policyList').innerHTML = '';
+        policyCount = 0;
+      }
+      validateForm();
+    }
+
+    function toggleMonitorFields() {
+      const checked = document.getElementById('customMonitor').checked;
+      const monitorFields = document.getElementById('monitorFields');
+      monitorFields.classList.toggle('hidden', !checked);
+      validateForm();
+    }
+
+    // Input Validation
+    function validateIP(ip) {
+      const regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      return regex.test(ip);
+    }
+
+    function validatePort(port) {
+      const num = parseInt(port, 10);
+      return port && !isNaN(num) && num >= 1 && num <= 65535;
+    }
+
+    function validateName(name) {
+      return name && name.trim().length > 0;
+    }
+
+    function validateFile(file) {
+      return file && /^[a-zA-Z0-9_.-]+\.(crt|key)$/.test(file);
+    }
+
+    function validateNumber(value, min, max) {
+      const num = parseInt(value, 10);
+      return value && !isNaN(num) && num >= min && num <= max;
+    }
+
+    function validateExpression(expr) {
+      return expr && (expr.includes('HTTP.REQ') || expr.includes('CLIENT.IP'));
+    }
+
+    function setError(id, message) {
+      const errorEl = document.getElementById(`${id}-error`);
+      errorEl.textContent = message;
+      errorEl.classList.toggle('show', !!message);
+      return !message;
+    }
+
+    function setWarning(id, message) {
+      const warningEl = document.getElementById(`${id}-warning`);
+      warningEl.textContent = message;
+      warningEl.classList.toggle('show', !!message);
+    }
+
+    function validateForm() {
+      let isValid = true;
+      const vipType = val('vipType');
+      const svcType = val('svcType');
+      const persistenceType = val('persistenceType');
+      const enableCS = document.getElementById('enableCS').checked;
+      const enablePolicies = document.getElementById('enablePolicies').checked;
+
+      isValid &= setError('vipName', validateName(val('vipName')) ? '' : 'Enter a name.');
+      isValid &= setError('vipIP', validateIP(val('vipIP')) ? '' : 'Enter a valid IP address.');
+      isValid &= setError('svcGroupName', validateName(val('svcGroupName')) ? '' : 'Enter a name.');
+      isValid &= setError('backendPort', validatePort(val('backendPort')) ? '' : 'Enter a valid port (1–65535).');
+
+      // Service Type Validation
+      if (!compatMatrix[vipType]) {
+        isValid &= setError('vipType', 'Invalid VIP Type.');
+      } else {
+        isValid &= setError('svcType', compatMatrix[vipType].includes(svcType) ? '' : `${svcType} Service Group is not compatible with ${vipType} VIP.`);
+        setWarning('svcType', warningMatrix[vipType]?.includes(svcType) ? `${svcType} Service Group is uncommon with ${vipType} VIP.` : '');
+      }
+
+      // Persistence Validation
+      if (persistenceType === 'COOKIEINSERT' || persistenceType === 'RULE') {
+        isValid &= setError('persistenceType', vipType === 'SSL' || vipType === 'HTTP' ? '' : `${persistenceType} requires SSL or HTTP VIP.`);
+      }
+      const timeout = val('timeout');
+      if (timeout && persistenceType !== 'NONE') {
+        isValid &= setError('timeout', validateNumber(timeout, 1, 1440) ? '' : 'Enter a timeout (1–1440 minutes).');
+      }
+
+      const vipPort = val('vipPort');
+      if (vipPort) {
+        isValid &= setError('vipPort', validatePort(vipPort) ? '' : 'Enter a valid port (1–65535).');
+      }
+
+      if (vipType === 'SSL') {
+        isValid &= setError('certKey', validateName(val('certKey')) ? '' : 'Enter a certificate key name.');
+        isValid &= setError('certFile', validateFile(val('certFile')) ? '' : 'Enter a valid .crt file name.');
+        isValid &= setError('keyFile', validateFile(val('keyFile')) ? '' : 'Enter a valid .key file name.');
+      }
+
+      if (document.getElementById('customMonitor').checked) {
+        isValid &= setError('monitorName', validateName(val('monitorName')) ? '' : 'Enter a monitor name.');
+        isValid &= setError('monitorInterval', validateNumber(val('monitorInterval'), 1, 3600) ? '' : 'Enter a number (1–3600).');
+        isValid &= setError('monitorTimeout', validateNumber(val('monitorTimeout'), 1, 3600) ? '' : 'Enter a number (1–3600).');
+      }
+
+      for (let i = 1; i <= memberCount; i++) {
+        if (document.getElementById(`srv${i}`)) {
+          isValid &= setError(`srv${i}`, validateName(val(`srv${i}`)) ? '' : 'Enter a server name.');
+          isValid &= setError(`ip${i}`, validateIP(val(`ip${i}`)) ? '' : 'Enter a valid IP address.');
+        }
+      }
+
+      isValid &= setError('memberList', memberCount > 0 ? '' : 'Add at least one backend member.');
+
+      // Content Switching Validation
+      if (enableCS) {
+        isValid &= setError('csVIPName', validateName(val('csVIPName')) ? '' : 'Enter a CS VIP name.');
+        const csVIPPort = val('csVIPPort');
+        if (csVIPPort) {
+          isValid &= setError('csVIPPort', validatePort(csVIPPort) ? '' : 'Enter a valid port (1–65535).');
+        }
+        isValid &= setError('csVIPName', vipType === 'HTTP' || vipType === 'SSL' ? '' : 'Content Switching requires HTTP or SSL VIP.');
+        for (let i = 1; i <= csPolicyCount; i++) {
+          if (document.getElementById(`csPolName${i}`)) {
+            isValid &= setError(`csPolName${i}`, validateName(val(`csPolName${i}`)) ? '' : 'Enter a policy name.');
+            isValid &= setError(`csURL${i}`, validateName(val(`csURL${i}`)) ? '' : 'Enter a URL pattern.');
+            isValid &= setError(`csTarget${i}`, val(`csTarget${i}`) ? '' : 'Select a target service group.');
+          }
+        }
+        isValid &= setError('csPolicyList', csPolicyCount > 0 ? '' : 'Add at least one CS policy.');
+      }
+
+      // Rewrite/Responder Validation
+      if (enablePolicies) {
+        isValid &= setError('policyList', vipType === 'HTTP' || vipType === 'SSL' ? '' : 'Policies require HTTP or SSL VIP.');
+        for (let i = 1; i <= policyCount; i++) {
+          if (document.getElementById(`polName${i}`)) {
+            isValid &= setError(`polName${i}`, validateName(val(`polName${i}`)) ? '' : 'Enter a policy name.');
+            isValid &= setError(`polAction${i}`, val(`polAction${i}`) ? '' : 'Select an action.');
+            const exprType = val(`polExprType${i}`);
+            if (exprType === 'CUSTOM') {
+              isValid &= setError(`polExprCustom${i}`, validateExpression(val(`polExprCustom${i}`)) ? '' : 'Enter a valid custom expression (e.g., HTTP.REQ...).');
+            } else {
+              isValid &= setError(`polExprValue${i}`, validateName(val(`polExprValue${i}`)) ? '' : 'Enter an expression value.');
+            }
+            isValid &= setError(`polValue${i}`, validateName(val(`polValue${i}`)) ? '' : 'Enter an action value.');
+          }
+        }
+        isValid &= setError('policyList', policyCount > 0 ? '' : 'Add at least one policy.');
+      }
+
+      document.querySelector('button[onclick="generateScript()"]').disabled = !isValid;
+      return isValid;
+    }
+
+    // Form Reset
+    function resetForm() {
+      document.getElementById('input').querySelectorAll('input[type="text"], select').forEach(input => input.value = '');
+      document.getElementById('backendSSL').checked = false;
+      document.getElementById('genRollback').checked = false;
+      document.getElementById('customMonitor').checked = false;
+      document.getElementById('enableCS').checked = false;
+      document.getElementById('enablePolicies').checked = false;
+      document.getElementById('persistenceType').value = 'NONE';
+      document.getElementById('memberList').innerHTML = '';
+      document.getElementById('csPolicyList').innerHTML = '';
+      document.getElementById('policyList').innerHTML = '';
+      memberCount = 0;
+      csPolicyCount = 0;
+      policyCount = 0;
+      document.getElementById('cliOutput').value = '';
+      document.getElementById('rollbackOutput').value = '';
+      sslAlertShown = false;
+      toggleSSLFields();
+      togglePersistenceFields();
+      toggleCSFields();
+      togglePolicyFields();
+      toggleMonitorFields();
+      updateServiceTypeOptions();
+      validateForm();
+      showToast('Form reset.', 'success');
+    }
+
+    // Script Generation
+    function generateServers() {
+      let script = '### --- Add Servers ---\n';
+      let rollback = '';
+      for (let i = 1; i <= memberCount; i++) {
+        const srv = val(`srv${i}`);
+        const ip = val(`ip${i}`);
+        if (srv && ip) {
+          script += `add server "${sanitize(srv)}" ${sanitize(ip)}\n`;
+          rollback += `rm server "${sanitize(srv)}"\n`;
+        }
+      }
+      return { script, rollback };
+    }
+
+    function generateServiceGroup(svcName, svcType, backendPort) {
+      let script = '\n### --- Create Service Group ---\n';
+      script += `add serviceGroup "${sanitize(svcName)}" ${svcType}\n`;
+      for (let i = 1; i <= memberCount; i++) {
+        const srv = val(`srv${i}`);
+        if (srv) {
+          script += `bind serviceGroup "${sanitize(svcName)}" "${sanitize(srv)}" ${backendPort}\n`;
+        }
+      }
+      return { script, rollback: `rm serviceGroup "${sanitize(svcName)}"\n` };
+    }
+
+    function generateMonitor(svcName, backendPort) {
+      const svcType = val('svcType');
+      const useCustom = document.getElementById('customMonitor').checked;
+      const monitorName = useCustom ? val('monitorName') : `${svcType.toLowerCase()}_mon`;
+      const interval = useCustom ? val('monitorInterval') : '5';
+      const timeout = useCustom ? val('monitorTimeout') : '3';
+      const monitorType = monitorMap[svcType] || 'TCP';
+
+      let script = '\n### --- Add Monitor ---\n';
+      script += `add lb monitor "${sanitize(monitorName)}" ${monitorType} -interval ${interval} -resptimeout ${timeout} -destPort ${backendPort}\n`;
+      script += `bind serviceGroup "${sanitize(svcName)}" -monitorName "${sanitize(monitorName)}"\n`;
+      return {
+        script,
+        rollback: `unbind serviceGroup "${sanitize(svcName)}" -monitorName "${sanitize(monitorName)}"\nrm lb monitor "${sanitize(monitorName)}"\n`
+      };
+    }
+
+    function generateContentSwitching(csVIPName, csVIPPort, vipName) {
+      let script = '\n### --- Content Switching ---\n';
+      let rollback = '';
+      const csVIPType = val('vipType') === 'SSL' ? 'SSL' : 'HTTP';
+      script += `add cs vserver "${sanitize(csVIPName)}" ${csVIPType} ${sanitize(val('vipIP'))} ${csVIPPort}\n`;
+      rollback += `rm cs vserver "${sanitize(csVIPName)}"\n`;
+
+      for (let i = 1; i <= csPolicyCount; i++) {
+        const polName = val(`csPolName${i}`);
+        const url = val(`csURL${i}`);
+        const target = val(`csTarget${i}`);
+        if (polName && url && target) {
+          const actionName = `cs_act_${polName}`;
+          script += `add cs action "${sanitize(actionName)}" -targetLBVserver "${sanitize(vipName)}"\n`;
+          script += `add cs policy "${sanitize(polName)}" -rule "HTTP.REQ.URL.PATH_AND_QUERY.CONTAINS(\\"${sanitize(url.replace('*', ''))}\\")" -action "${sanitize(actionName)}"\n`;
+          script += `bind cs vserver "${sanitize(csVIPName)}" -policyName "${sanitize(polName)}" -priority ${i * 100}\n`;
+          rollback += `unbind cs vserver "${sanitize(csVIPName)}" -policyName "${sanitize(polName)}"\n`;
+          rollback += `rm cs policy "${sanitize(polName)}"\n`;
+          rollback += `rm cs action "${sanitize(actionName)}"\n`;
+        }
+      }
+      return { script, rollback };
+    }
+
+    function generatePolicies(vipName) {
+      let script = '\n### --- Rewrite/Responder Policies ---\n';
+      let rollback = '';
+      for (let i = 1; i <= policyCount; i++) {
+        const polType = val(`polType${i}`);
+        const polName = val(`polName${i}`);
+        const action = val(`polAction${i}`);
+        const exprType = val(`polExprType${i}`);
+        const exprValue = val(`polExprValue${i}`);
+        const exprCustom = val(`polExprCustom${i}`);
+        const value = val(`polValue${i}`);
+        if (polName && action && (exprValue || exprCustom) && value) {
+          const actionName = `${polType.toLowerCase()}_act_${polName}`;
+          let expr = exprCustom;
+          if (exprType !== 'CUSTOM') {
+            const exprDef = predefinedExpressions.find(e => e.value === exprType);
+            if (exprDef) {
+              expr = exprDef.template.replace('<text>', sanitize(exprValue))
+                .replace('<host>', sanitize(exprValue))
+                .replace('<ip>', sanitize(exprValue));
+            }
+          }
+          if (polType === 'Rewrite') {
+            const [header, val] = value.split(':').map(s => s.trim());
+            if (action === 'INSERT_HTTP_HEADER' || action === 'DELETE_HTTP_HEADER') {
+              script += `add rewrite action "${sanitize(actionName)}" ${action} "${sanitize(header)}" ${val ? `"${sanitize(val)}"` : ''}\n`;
+            }
+            script += `add rewrite policy "${sanitize(polName)}" "${sanitize(expr)}" "${sanitize(actionName)}"\n`;
+            script += `bind lb vserver "${sanitize(vipName)}" -policyName "${sanitize(polName)}" -priority ${i * 100} -type REQUEST\n`;
+            rollback += `unbind lb vserver "${sanitize(vipName)}" -policyName "${sanitize(polName)}"\n`;
+            rollback += `rm rewrite policy "${sanitize(polName)}"\n`;
+            rollback += `rm rewrite action "${sanitize(actionName)}"\n`;
+          } else if (polType === 'Responder') {
+            const statusCode = action === 'REDIRECT' ? '302' : '200';
+            script += `add responder action "${sanitize(actionName)}" ${action} "\"${sanitize(value)}\"" -responseStatusCode ${statusCode}\n`;
+            script += `add responder policy "${sanitize(polName)}" "${sanitize(expr)}" "${sanitize(actionName)}"\n`;
+            script += `bind lb vserver "${sanitize(vipName)}" -policyName "${sanitize(polName)}" -priority ${i * 100} -type REQUEST\n`;
+            rollback += `unbind lb vserver "${sanitize(vipName)}" -policyName "${sanitize(polName)}"\n`;
+            rollback += `rm responder policy "${sanitize(polName)}"\n`;
+            rollback += `rm responder action "${sanitize(actionName)}"\n`;
+          }
+        }
+      }
+      return { script, rollback };
+    }
+
+    function generateVIP(vipName, vipType, vipIP, vipPort, svcName, lbMethod) {
+      const persistenceType = val('persistenceType');
+      const timeout = val('timeout');
+      let script = '\n### --- Create VIP ---\n';
+      let persistenceCmd = persistenceType !== 'NONE' ? `-persistenceType ${persistenceType}` : '';
+      if (persistenceType !== 'NONE' && timeout) {
+        persistenceCmd += ` -timeout ${timeout}`;
+      }
+      script += `add lb vserver "${sanitize(vipName)}" ${vipType} ${sanitize(vipIP)} ${vipPort} ${persistenceCmd} -lbMethod ${lbMethod}\n`;
+      script += `bind lb vserver "${sanitize(vipName)}" "${sanitize(svcName)}"\n`;
+      return {
+        script,
+        rollback: `rm lb vserver "${sanitize(vipName)}"\n${persistenceType !== 'NONE' ? `set lb vserver "${sanitize(vipName)}" -persistenceType NONE\n` : ''}`
+      };
+    }
+
+    function generateSSLCert(vipName, certKey, certFile, keyFile) {
+      let script = '\n### --- SSL Certificate Import and Bind ---\n';
+      script += `import ssl cert "${sanitize(certKey)}" -certFile "/nsconfig/ssl/${sanitize(certFile)}" -keyFile "/nsconfig/ssl/${sanitize(keyFile)}"\n`;
+      script += `add ssl certKey "${sanitize(certKey)}" -cert "/nsconfig/ssl/${sanitize(certFile)}" -key "/nsconfig/ssl/${sanitize(keyFile)}"\n`;
+      script += `bind ssl vserver "${sanitize(vipName)}" -certkeyName "${sanitize(certKey)}"\n`;
+      return {
+        script,
+        rollback: `unbind ssl vserver "${sanitize(vipName)}" -certkeyName "${sanitize(certKey)}"\nrm ssl certKey "${sanitize(certKey)}"\nrm ssl cert "${sanitize(certKey)}"\n`
+      };
+    }
+
+    function generateRedirect(vipName, vipIP) {
+      let script = '\n### --- HTTP to HTTPS Redirect ---\n';
+      script += `add lb vserver "${sanitize(vipName)}_http_redirect" HTTP ${sanitize(vipIP)} 80 -persistenceType NONE\n`;
+      script += `add responder action redirect_to_https redirect "\"https://\" + HTTP.REQ.HOSTNAME + HTTP.REQ.URL" -responseStatusCode 302\n`;
+      script += `add responder policy policy_redirect_https "HTTP.REQ.TARGET.MATCHES_REGEX(.*)" redirect_to_https\n`;
+      script += `bind lb vserver "${sanitize(vipName)}_http_redirect" -policyName policy_redirect_https -priority 100 -gotoPriorityExpression END -type REQUEST\n`;
+      return {
+        script,
+        rollback: `rm lb vserver "${sanitize(vipName)}_http_redirect"\nrm responder policy policy_redirect_https\nrm responder action redirect_to_https\n`
+      };
+    }
+
+    function generateBackendSSL(svcName) {
+      let script = '\n### --- Backend SSL Cert Binding ---\n';
+      script += `set ssl serviceGroup "${sanitize(svcName)}" -sslProfile ns_default_ssl_profile_backend\n`;
+      return { script, rollback: `set ssl serviceGroup "${sanitize(svcName)}" -sslProfile NONE\n` };
+    }
+
+    function generateScript() {
+      if (!validateForm()) {
+        showToast('Please fix input errors.', 'error');
+        return;
+      }
+
+      const vipName = val('vipName');
+      const vipIP = val('vipIP');
+      const svcName = val('svcGroupName');
+      const certKey = val('certKey');
+      const certFile = val('certFile');
+      const keyFile = val('keyFile');
+      const backendPort = val('backendPort');
+      const svcType = val('svcType');
+      const vipType = val('vipType');
+      const lbMethod = val('lbMethod');
+      const rollback = document.getElementById('genRollback').checked;
+      const backendSSL = document.getElementById('backendSSL').checked;
+      const enableCS = document.getElementById('enableCS').checked;
+      const csVIPName = val('csVIPName');
+      const csVIPPort = val('csVIPPort') || (vipType === 'SSL' ? '443' : '80');
+      const enablePolicies = document.getElementById('enablePolicies').checked;
+      const vipPort = val('vipPort') || (vipType === 'SSL' ? '443' : vipType === 'HTTP' ? '80' : vipType === 'DNS' ? '53' : '8080');
+
+      let script = '';
+      let rollbackScript = '';
+
+      const servers = generateServers();
+      script += servers.script;
+      rollbackScript += servers.rollback;
+
+      const serviceGroup = generateServiceGroup(svcName, svcType, backendPort);
+      script += serviceGroup.script;
+      rollbackScript += serviceGroup.rollback;
+
+      const monitor = generateMonitor(svcName, backendPort);
+      script += monitor.script;
+      rollbackScript += monitor.rollback;
+
+      if (enableCS) {
+        const cs = generateContentSwitching(csVIPName, csVIPPort, vipName);
+        script += cs.script;
+        rollbackScript += cs.rollback;
+      }
+
+      const vip = generateVIP(vipName, vipType, vipIP, vipPort, svcName, lbMethod);
+      script += vip.script;
+      rollbackScript += vip.rollback;
+
+      if (enablePolicies) {
+        const policies = generatePolicies(vipName);
+        script += policies.script;
+        rollbackScript += policies.rollback;
+      }
+
+      if (vipType === 'SSL') {
+        const sslCert = generateSSLCert(vipName, certKey, certFile, keyFile);
+        script += sslCert.script;
+        rollbackScript += sslCert.rollback;
+      }
+
+      if (vipType === 'SSL' || vipType === 'HTTP') {
+        const redirect = generateRedirect(vipName, vipIP);
+        script += redirect.script;
+        rollbackScript += redirect.rollback;
+      }
+
+      if (backendSSL) {
+        const backend = generateBackendSSL(svcName);
+        script += backend.script;
+        rollbackScript += backend.rollback;
+      }
+
+      script += '\nsave config\n';
+      rollbackScript += '\nsave config\n';
+
+      document.getElementById('cliOutput').value = script;
+      document.getElementById('rollbackOutput').value = rollback ? rollbackScript : 'Rollback not selected.';
+      showTab('script');
+      showToast('Script generated successfully!', 'success');
+    }
+
+    // Utility Functions
+    function val(id) {
+      return document.getElementById(id)?.value.trim() || '';
+    }
+
+    function sanitize(input) {
+      const sanitized = input.replace(/[<>"]/g, '');
+      if (/[\s!@#$%^&*(),.?;{}]/.test(sanitized)) {
+        return `"${sanitized}"`;
+      }
+      return sanitized;
+    }
+
+    // Initialize
+    toggleSSLFields();
+    togglePersistenceFields();
+    toggleCSFields();
+    togglePolicyFields();
+    toggleMonitorFields();
+    updateServiceTypeOptions();
+    validateForm();
+
+    // Keyboard Navigation for Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          tab.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

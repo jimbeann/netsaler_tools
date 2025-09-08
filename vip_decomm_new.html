@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIP Decommission MOP Generator</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .output {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+    }
+    .toggle {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>NetScaler VIP Decommission MOP Generator</h1>
+  <p>Paste your JSON input below:</p>
+  <textarea id="jsonInput"></textarea>
+
+  <div class="toggle">
+    <label><input type="checkbox" id="includeServices" checked /> Include Service Groups</label><br />
+    <label><input type="checkbox" id="includeCerts" checked /> Include SSL CertKeys</label><br />
+    <label><input type="checkbox" id="includeGslb" checked /> Include GSLB Config</label><br />
+    <label><input type="checkbox" id="includeGslbServiceDelete" checked /> Remove GSLB Services</label>
+  </div>
+
+  <button onclick="generateMop()">Generate MOP</button>
+
+  <h2>Decommission MOP</h2>
+  <div class="output" id="decomOutput"></div>
+
+  <h2>Rollback MOP</h2>
+  <div class="output" id="rollbackOutput"></div>
+
+  <script>
+    function generateMop() {
+      const rawInput = document.getElementById("jsonInput").value;
+      const includeServices = document.getElementById("includeServices").checked;
+      const includeCerts = document.getElementById("includeCerts").checked;
+      const includeGslb = document.getElementById("includeGslb").checked;
+      const includeGslbServiceDelete = document.getElementById("includeGslbServiceDelete").checked;
+
+      let data;
+      try {
+        data = JSON.parse(rawInput);
+      } catch (e) {
+        alert("Invalid JSON: " + e.message);
+        return;
+      }
+
+      let decom = "";
+      let rollback = "";
+
+      const lbvs = data.lbvs || [];
+      lbvs.forEach(lb => {
+        const netscaler = lb.netscaler || "<netscaler-name>";
+        decom += `<${netscaler}>\n# Remove LB vserver\nrm lb vserver ${lb.name}\n`;
+        if (includeServices && lb.servicegroup) {
+          decom += `# Remove Service Group\nrm serviceGroup ${lb.servicegroup.name}\n`;
+        }
+
+        rollback += `<${netscaler}>\n# Add LB vserver\nadd lb vserver ${lb.name} ${lb.type} ${lb.ip} ${lb.port}\n`;
+        if (includeServices && lb.servicegroup) {
+          rollback += `# Add Service Group\nadd serviceGroup ${lb.servicegroup.name} ${lb.servicegroup.type}\n`;
+          lb.servicegroup.servers.forEach(s => {
+            rollback += `bind serviceGroup ${lb.servicegroup.name} ${s.ip} ${s.port} -servername ${s.name}\n`;
+          });
+          if (lb.servicegroup.monitors) {
+            lb.servicegroup.monitors.forEach(mon => {
+              rollback += `bind serviceGroup ${lb.servicegroup.name} -monitorName ${mon.monitorName}\n`;
+            });
+          }
+        }
+        decom += `\n`;
+        rollback += `\n`;
+      });
+
+      const gslbs = data.gslb || [];
+      gslbs.forEach(g => {
+        const lbName = g.loadBalancer || "<gslb-device>";
+        decom += `<${lbName}>\n# Remove GSLB vserver\nrm gslb vserver ${g.name}\n`;
+        rollback += `<${lbName}>\n# Add GSLB vserver\nadd gslb vserver ${g.name} ${g.serviceName[0]?.type || 'SSL'} -dnsName ${g.domainName} -ttl ${g.TTL}\n`;
+
+        g.serviceName.forEach(svc => {
+          if (includeGslbServiceDelete) {
+            decom += `rm gslb service ${svc.name}\n`;
+          }
+          rollback += `add gslb service ${svc.name} ${svc.siteName} ${svc.publicIP} ${svc.publicPort}\n`;
+          rollback += `bind gslb vserver ${g.name} ${svc.name}\n`;
+        });
+        decom += `\n`;
+        rollback += `\n`;
+      });
+
+      document.getElementById("decomOutput").textContent = decom.trim();
+      document.getElementById("rollbackOutput").textContent = rollback.trim();
+    }
+  </script>
+</body>
+</html>

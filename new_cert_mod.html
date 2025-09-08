@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NetScaler Certificate Update Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 20px;
+      background: linear-gradient(to right, #f0f4f8, #d9e2ec);
+      color: #333;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-family: monospace;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      transition: box-shadow 0.3s;
+    }
+    textarea:focus, input:focus {
+      box-shadow: 0 0 5px rgba(0,123,255,0.5);
+      outline: none;
+    }
+    button {
+      padding: 12px 24px;
+      margin-top: 10px;
+      font-size: 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    pre {
+      background: #272822;
+      color: #f8f8f2;
+      padding: 20px;
+      white-space: pre-wrap;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .section {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      animation: fadeInUp 0.6s ease;
+    }
+    h2, h3 {
+      color: #2c3e50;
+    }
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<h2>NetScaler Certificate Update MOP Generator</h2>
+
+<div class="section">
+  <label>Load Balancer Hostname:</label>
+  <input type="text" id="lbHost" placeholder="e.g. atl-qaern-lb01">
+
+  <label>Output of <code>show lb vserver &lt;vserver&gt;</code>:</label>
+  <textarea id="vserverOutput" rows="8"></textarea>
+
+  <label>Output of <code>show run | grep &lt;certKeyName&gt;</code>:</label>
+  <textarea id="grepOutput" rows="6"></textarea>
+
+  <label>New PEM Bundle File Name (e.g. new_cert.pem):</label>
+  <input type="text" id="pemFile">
+
+  <label>PEM Passphrase:</label>
+  <input type="text" id="pemPass">
+
+  <label>Intermediate Cert File Name (optional):</label>
+  <input type="text" id="intermediateCert">
+
+  <button onclick="generateMop()">Generate MOP</button>
+</div>
+
+<div class="section">
+  <h3>Generated MOP:</h3>
+  <pre id="output"></pre>
+</div>
+
+<script>
+function generateMop() {
+  const lbHost = document.getElementById('lbHost').value.trim();
+  const vserverOutput = document.getElementById('vserverOutput').value;
+  const grepOutput = document.getElementById('grepOutput').value;
+  const pemFile = document.getElementById('pemFile').value.trim();
+  const pemPass = document.getElementById('pemPass').value.trim();
+  const intermediateCert = document.getElementById('intermediateCert').value.trim();
+
+  let vipLine = vserverOutput.split('\n').find(line => line.includes('lb-vs-')) || '';
+  let vipName = (vipLine.match(/lb-vs-[^\s]+/) || [])[0] || 'UNKNOWN_VIP';
+
+  // From grep output of certKeyName
+  let certKeyLine = grepOutput.split('\n').find(line => line.includes('add ssl certKey')) || '';
+  let oldCertKey = (certKeyLine.match(/add ssl certKey\s+(\S+)/) || [])[1];
+  let oldCrt = (certKeyLine.match(/-cert\s+(\S+)/) || [])[1];
+  let oldKey = (certKeyLine.match(/-key\s+(\S+)/) || [])[1];
+
+  if (!oldCertKey) oldCertKey = prompt("Couldn't find cert key name. Please enter it manually:");
+  if (!oldCrt) oldCrt = prompt("Couldn't find old .crt file name. Please enter it manually:");
+  if (!oldKey) oldKey = prompt("Couldn't find old .key file name. Please enter it manually:");
+
+  const newCertKeyBundle = oldCertKey + '_renewed_2025';
+
+  let deploy = `DEPLOY:\n========\n\n<${lbHost}>\n--------------------------\n\n` +
+    `unbind ssl vserver ${vipName} -certkeyName ${oldCertKey}\n` +
+    `add ssl certKeyBundle ${newCertKeyBundle} -cert -bundlefile ${pemFile} -passplain ${pemPass}\n` +
+    `bind ssl vserver ${vipName} -certkeyBundleName ${newCertKeyBundle}\n` +
+    `rm ssl certKey ${oldCertKey}\n\n` +
+    `save ns config`;
+
+  let rollback = `ROLLBACK:\n=========\n\n<${lbHost}>\n--------------------------\n\n` +
+    `unbind ssl vserver ${vipName} -certkeyName ${newCertKeyBundle}\n` +
+    `add ssl certKey ${oldCertKey} -cert ${oldCrt} -key ${oldKey}\n`;
+
+  if (intermediateCert) {
+    rollback += `link ssl certKey ${oldCertKey} ${intermediateCert}\n`;
+  }
+
+  rollback += `bind ssl vserver ${vipName} -certkeyName ${oldCertKey}\n` +
+              `rm ssl certKey ${newCertKeyBundle}\n\n` +
+              `save ns config`;
+
+  document.getElementById('output').textContent = deploy + '\n\n' + rollback;
+}
+</script>
+
+</body>
+</html>

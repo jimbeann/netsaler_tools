@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NetScaler CLI Generator</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .tabs button { margin-right: 10px; padding: 10px; cursor: pointer; }
+    textarea { width: 100%; height: 300px; margin-top: 20px; }
+    .form-group { margin-bottom: 10px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; }
+    input, select { padding: 5px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h2>NetScaler CLI Generator</h2>
+  <div class="tabs">
+    <button onclick="switchTab('responder')">Responder Redirect Generator</button>
+    <button onclick="switchTab('content')">Content Switching Policy Builder</button>
+  </div>
+
+  <!-- Responder Redirect Generator -->
+  <div id="responder" class="tab active">
+    <div class="form-group">
+      <label for="vipName">VIP Name</label>
+      <input type="text" id="vipName">
+    </div>
+    <div class="form-group">
+      <label for="redirectURI">Redirect URI (e.g., /home)</label>
+      <input type="text" id="redirectURI">
+    </div>
+    <div class="form-group">
+      <label for="redirectType">Redirect Type</label>
+      <select id="redirectType">
+        <option value="302">302 (Temporary)</option>
+        <option value="301">301 (Permanent)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="matchCondition">Match Condition (Optional)</label>
+      <input type="text" id="matchCondition" placeholder="e.g., HTTP.REQ.URL.PATH_AND_QUERY.NE(\"/home\")">
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="responderRollback"> Include Rollback</label>
+    </div>
+    <button onclick="generateResponder()">Generate CLI</button>
+    <textarea id="responderOutput" readonly></textarea>
+  </div>
+
+  <!-- Content Switching Policy Builder -->
+  <div id="content" class="tab">
+    <div class="form-group">
+      <label for="csVserver">CS vServer Name</label>
+      <input type="text" id="csVserver">
+    </div>
+    <div class="form-group">
+      <label for="matchType">Match Type</label>
+      <select id="matchType">
+        <option value="URL">Path</option>
+        <option value="HOSTNAME">Hostname</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="matchValue">Match Value</label>
+      <input type="text" id="matchValue" placeholder="e.g., /app1 or example.com">
+    </div>
+    <div class="form-group">
+      <label for="targetVserver">Target LB vServer</label>
+      <input type="text" id="targetVserver">
+    </div>
+    <div class="form-group">
+      <label for="csPriority">Priority</label>
+      <input type="number" id="csPriority" value="100">
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="csRollback"> Include Rollback</label>
+    </div>
+    <button onclick="generateContentSwitching()">Generate CLI</button>
+    <textarea id="csOutput" readonly></textarea>
+  </div>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function generateResponder() {
+      const vip = document.getElementById('vipName').value;
+      const uri = document.getElementById('redirectURI').value;
+      const status = document.getElementById('redirectType').value;
+      const match = document.getElementById('matchCondition').value || `HTTP.REQ.URL.PATH_AND_QUERY.NE(\"${uri}\")`;
+      const rollback = document.getElementById('responderRollback').checked;
+
+      let cli = `add responder action redirect_to_home redirect \"https://${vip}${uri}\" -responseStatusCode ${status}\n`;
+      cli += `add responder policy policy_redirect_to_home \"${match}\" redirect_to_home\n`;
+      cli += `bind lb vserver ${vip} -policyName policy_redirect_to_home -priority 100 -gotoPriorityExpression END -type REQUEST\n`;
+
+      if (rollback) {
+        cli += `\n### Rollback Commands ###\n`;
+        cli += `unbind lb vserver ${vip} -policyName policy_redirect_to_home -type REQUEST\n`;
+        cli += `rm responder policy policy_redirect_to_home\n`;
+        cli += `rm responder action redirect_to_home\n`;
+      }
+      cli += `\nsave config`;
+      document.getElementById('responderOutput').value = cli;
+    }
+
+    function generateContentSwitching() {
+      const csVserver = document.getElementById('csVserver').value;
+      const matchType = document.getElementById('matchType').value;
+      const matchValue = document.getElementById('matchValue').value;
+      const target = document.getElementById('targetVserver').value;
+      const priority = document.getElementById('csPriority').value;
+      const rollback = document.getElementById('csRollback').checked;
+
+      const condition = matchType === 'URL'
+        ? `HTTP.REQ.URL.PATH.SET_TEXT_MODE(IGNORECASE).STARTSWITH(\"${matchValue}\")`
+        : `HTTP.REQ.HOSTNAME.SET_TEXT_MODE(IGNORECASE).EQ(\"${matchValue}\")`;
+
+      let cli = `add cs policy cs_policy_${target} \"${condition}\" ${target}\n`;
+      cli += `bind cs vserver ${csVserver} -policyName cs_policy_${target} -priority ${priority} -targetLBVserver ${target}\n`;
+
+      if (rollback) {
+        cli += `\n### Rollback Commands ###\n`;
+        cli += `unbind cs vserver ${csVserver} -policyName cs_policy_${target}\n`;
+        cli += `rm cs policy cs_policy_${target}\n`;
+      }
+      cli += `\nsave config`;
+      document.getElementById('csOutput').value = cli;
+    }
+  </script>
+</body>
+</html>
