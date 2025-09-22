@@ -40,7 +40,7 @@
     <label><input type="checkbox" id="includeGslbServiceDelete" checked /> Remove GSLB Services</label>
   </div>
 
-  <button onclick="generateMop()">Generate MOP</button>
+  <button id="generateBtn">Generate MOP</button>
 
   <h2>Decommission MOP</h2>
   <div class="output" id="decomOutput"></div>
@@ -50,13 +50,13 @@
 
   <script>
     function generateMop() {
-      const rawInput = document.getElementById("jsonInput").value;
-      const includeServices = document.getElementById("includeServices").checked;
-      const includeCerts = document.getElementById("includeCerts").checked;
-      const includeGslb = document.getElementById("includeGslb").checked;
-      const includeGslbServiceDelete = document.getElementById("includeGslbServiceDelete").checked;
+      var rawInput = document.getElementById("jsonInput").value;
+      var includeServices = document.getElementById("includeServices").checked;
+      var includeCerts = document.getElementById("includeCerts").checked;
+      var includeGslb = document.getElementById("includeGslb").checked;
+      var includeGslbServiceDelete = document.getElementById("includeGslbServiceDelete").checked;
 
-      let data;
+      var data;
       try {
         data = JSON.parse(rawInput);
       } catch (e) {
@@ -64,53 +64,75 @@
         return;
       }
 
-      let decom = "";
-      let rollback = "";
+      var decom = "";
+      var rollback = "";
 
-      const lbvs = data.lbvs || [];
-      lbvs.forEach(lb => {
-        const netscaler = lb.netscaler || "<netscaler-name>";
-        decom += `<${netscaler}>\n# Remove LB vserver\nrm lb vserver ${lb.name}\n`;
-        if (includeServices && lb.servicegroup) {
-          decom += `# Remove Service Group\nrm serviceGroup ${lb.servicegroup.name}\n`;
+      var lbvs = data.lbvs || [];
+      for (var i = 0; i < lbvs.length; i++) {
+        var lb = lbvs[i];
+        var netscaler = lb.netscaler || "<netscaler-name>";
+        decom += "<" + netscaler + ">\n# Remove LB vserver\nrm lb vserver " + lb.name + "\n";
+        if (includeServices && lb.servicegroup && lb.servicegroup.name) {
+          decom += "# Remove Service Group\nrm serviceGroup " + lb.servicegroup.name + "\n";
+        }
+        if (includeCerts && lb.certkey) {  // Assuming JSON has lb.certkey; adjust as needed
+          decom += "# Remove CertKey\nrm ssl certKey " + lb.certkey + "\n";
         }
 
-        rollback += `<${netscaler}>\n# Add LB vserver\nadd lb vserver ${lb.name} ${lb.type} ${lb.ip} ${lb.port}\n`;
-        if (includeServices && lb.servicegroup) {
-          rollback += `# Add Service Group\nadd serviceGroup ${lb.servicegroup.name} ${lb.servicegroup.type}\n`;
-          lb.servicegroup.servers.forEach(s => {
-            rollback += `bind serviceGroup ${lb.servicegroup.name} ${s.ip} ${s.port} -servername ${s.name}\n`;
-          });
+        rollback += "<" + netscaler + ">\n# Add LB vserver\nadd lb vserver " + lb.name + " " + (lb.type || "SSL") + " " + (lb.ip || "0.0.0.0") + " " + (lb.port || "443") + "\n";
+        if (includeServices && lb.servicegroup && lb.servicegroup.name) {
+          rollback += "# Add Service Group\nadd serviceGroup " + lb.servicegroup.name + " " + (lb.servicegroup.type || "SSL") + "\n";
+          if (lb.servicegroup.servers) {
+            for (var j = 0; j < lb.servicegroup.servers.length; j++) {
+              var s = lb.servicegroup.servers[j];
+              rollback += "bind serviceGroup " + lb.servicegroup.name + " " + (s.ip || "0.0.0.0") + " " + (s.port || "80") + " -servername " + (s.name || "") + "\n";
+            }
+          }
           if (lb.servicegroup.monitors) {
-            lb.servicegroup.monitors.forEach(mon => {
-              rollback += `bind serviceGroup ${lb.servicegroup.name} -monitorName ${mon.monitorName}\n`;
-            });
+            for (var k = 0; k < lb.servicegroup.monitors.length; k++) {
+              var mon = lb.servicegroup.monitors[k];
+              rollback += "bind serviceGroup " + lb.servicegroup.name + " -monitorName " + (mon.monitorName || "") + "\n";
+            }
           }
         }
-        decom += `\n`;
-        rollback += `\n`;
-      });
+        if (includeCerts && lb.certkey) {
+          rollback += "# Add CertKey (re-import cert if needed)\nadd ssl certKey " + lb.certkey + " -cert <cert-file> -key <key-file>\nbind ssl vserver " + lb.name + " -certkeyName " + lb.certkey + "\n";
+        }
+        decom += "\n";
+        rollback += "\n";
+      }
 
-      const gslbs = data.gslb || [];
-      gslbs.forEach(g => {
-        const lbName = g.loadBalancer || "<gslb-device>";
-        decom += `<${lbName}>\n# Remove GSLB vserver\nrm gslb vserver ${g.name}\n`;
-        rollback += `<${lbName}>\n# Add GSLB vserver\nadd gslb vserver ${g.name} ${g.serviceName[0]?.type || 'SSL'} -dnsName ${g.domainName} -ttl ${g.TTL}\n`;
+      var gslbs = data.gslb || [];
+      for (var m = 0; m < gslbs.length; m++) {
+        var g = gslbs[m];
+        var lbName = g.loadBalancer || "<gslb-device>";
+        decom += "<" + lbName + ">\n# Remove GSLB vserver\nrm gslb vserver " + g.name + "\n";
+        var gslbType = "SSL";  // Fallback; check first service traditionally
+        if (g.serviceName && g.serviceName.length > 0 && g.serviceName[0].type) {
+          gslbType = g.serviceName[0].type;
+        }
+        rollback += "<" + lbName + ">\n# Add GSLB vserver\nadd gslb vserver " + g.name + " " + gslbType + " -dnsName " + (g.domainName || "") + " -ttl " + (g.TTL || 30) + "\n";
 
-        g.serviceName.forEach(svc => {
-          if (includeGslbServiceDelete) {
-            decom += `rm gslb service ${svc.name}\n`;
+        if (g.serviceName) {
+          for (var n = 0; n < g.serviceName.length; n++) {
+            var svc = g.serviceName[n];
+            if (includeGslbServiceDelete && svc.name) {
+              decom += "rm gslb service " + svc.name + "\n";
+            }
+            rollback += "add gslb service " + (svc.name || "") + " " + (svc.siteName || "") + " " + (svc.publicIP || "0.0.0.0") + " " + (svc.publicPort || "80") + "\n";
+            rollback += "bind gslb vserver " + g.name + " " + (svc.name || "") + "\n";
           }
-          rollback += `add gslb service ${svc.name} ${svc.siteName} ${svc.publicIP} ${svc.publicPort}\n`;
-          rollback += `bind gslb vserver ${g.name} ${svc.name}\n`;
-        });
-        decom += `\n`;
-        rollback += `\n`;
-      });
+        }
+        decom += "\n";
+        rollback += "\n";
+      }
 
       document.getElementById("decomOutput").textContent = decom.trim();
       document.getElementById("rollbackOutput").textContent = rollback.trim();
     }
+
+    // Use addEventListener for better compatibility and separation
+    document.getElementById("generateBtn").addEventListener("click", generateMop);
   </script>
 </body>
 </html>
