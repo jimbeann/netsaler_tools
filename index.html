@@ -1,315 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>NetOps Toolbox Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>NetOps Toolbox</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- PERF: system font stack (no Google Fonts) -->
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --bg1: #0f172a;
+      --bg2: #020617;
+      --card: #111827;
+      --card-hover: #1f2933;
+      --border: #1f2937;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --radius: 14px;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       min-height: 100vh;
-      background: linear-gradient(135deg, #1e3a8a 0%, #06b6d4 100%);
-      font-family: 'Inter', sans-serif;
-      color: #f0f9ff;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #1e40af 0%, transparent 60%),
+                  radial-gradient(1000px 500px at 100% 0%, #0891b2 0%, transparent 55%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text);
     }
 
-    .dashboard-header {
-      padding: 2rem 1rem;
+    header {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 1rem;
       text-align: center;
-      font-size: 2.5rem;
+    }
+
+    header h1 {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
       font-weight: 700;
-      color: #ffffff;
-      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      margin-bottom: 0.5rem;
-      opacity: 0;
-      animation: fadeIn 1s ease-out forwards;
+      letter-spacing: -0.02em;
     }
 
-    .dashboard-description {
-      text-align: center;
-      font-size: 1.1rem;
-      color: #d1e7ff;
-      margin-bottom: 2rem;
-      max-width: 600px;
-      opacity: 0;
-      animation: fadeIn 1s ease-out 0.3s forwards;
+    header p {
+      margin-top: 0.75rem;
+      color: var(--muted);
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
     }
 
-    .module-grid {
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      padding: 1.5rem;
-      max-width: 1400px;
-      width: 100%;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
     }
 
-    .glass-card {
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 1.5rem;
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      opacity: 0;
-      animation: slideUp 0.6s ease-out forwards;
-      animation-delay: calc(var(--order) * 0.1s);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
     }
 
-    .glass-card:nth-child(1) { --order: 1; }
-    .glass-card:nth-child(2) { --order: 2; }
-    .glass-card:nth-child(3) { --order: 3; }
-    .glass-card:nth-child(4) { --order: 4; }
-    .glass-card:nth-child(5) { --order: 5; }
-    .glass-card:nth-child(6) { --order: 6; }
-    .glass-card:nth-child(7) { --order: 7; }
-    .glass-card:nth-child(8) { --order: 8; }
-    .glass-card:nth-child(9) { --order: 9; }
-    .glass-card:nth-child(10) { --order: 10; }
-    .glass-card:nth-child(11) { --order: 11; }
-    .glass-card:nth-child(12) { --order: 12; }
-    .glass-card:nth-child(13) { --order: 13; }
-    .glass-card:nth-child(14) { --order: 14; }
-    .glass-card:nth-child(15) { --order: 15; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .card:hover {
+      transform: translateY(-3px);
+      background: var(--card-hover);
+      box-shadow: 0 10px 28px rgba(0,0,0,.35);
     }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+    .icon {
+      font-size: 1.8rem;
+      line-height: 1;
+      margin-bottom: .75rem;
+      color: var(--accent);
     }
 
-    .glass-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .shine-effect {
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0));
-      filter: blur(20px);
-      transition: transform 0.5s ease;
-      pointer-events: none;
-    }
-
-    .glass-card:hover .shine-effect {
-      transform: translateX(100%) rotate(45deg);
-    }
-
-    .module-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, #22d3ee, #4ade80);
-      color: transparent;
-      background-clip: text;
-      -webkit-background-clip: text;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
-    }
-
-    .module-title {
-      font-size: 1.2rem;
+    .title {
       font-weight: 600;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, #a5f3fc, #22d3ee);
-      color: transparent;
-      background-clip: text;
-      -webkit-background-clip: text;
-      text-align: center;
+      margin-bottom: .35rem;
     }
 
-    .module-desc {
-      text-align: center;
-      color: #e0f2fe;
-      font-size: 0.95rem;
-      opacity: 0.9;
+    .desc {
+      font-size: .95rem;
+      color: var(--muted);
+      line-height: 1.4;
       margin-bottom: 1rem;
-      min-height: 40px;
+      flex-grow: 1;
     }
 
-    .module-link {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.5rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 600;
-      border-radius: 8px;
-      color: #f0f9ff;
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+    .link {
+      align-self: flex-start;
       text-decoration: none;
-      transition: all 0.2s ease;
+      font-weight: 600;
+      font-size: .95rem;
+      color: #020617;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      padding: .45rem .9rem;
+      border-radius: 8px;
+      transition: filter .15s ease, transform .15s ease;
     }
 
-    .module-link:hover {
-      background: linear-gradient(135deg, #22d3ee, #4ade80);
-      color: #1e293b;
-      border-color: transparent;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    .link:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+      padding: 1.5rem 1rem 2rem;
     }
 
-    @media (max-width: 900px) {
-      .module-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-      }
-      .dashboard-header {
-        font-size: 2rem;
-        padding: 1.5rem 1rem;
-      }
-      .glass-card {
-        padding: 1.25rem;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .module-grid {
-        grid-template-columns: 1fr;
-      }
-      .dashboard-header {
-        font-size: 1.8rem;
-      }
-      .dashboard-description {
-        font-size: 1rem;
-      }
+    /* PERF: no animations on load */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
     }
   </style>
 </head>
 <body>
-  <div class="dashboard-header">NetOps Toolbox Dashboard</div>
-  <div class="dashboard-description">
-    Quick launchpad for all your network automation tools. Click any module to start.
-  </div>
-  <div class="module-grid">
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#9881;</div>
-      <div class="module-title">VIP Creator</div>
-      <div class="module-desc">Create new virtual servers with preloaded templates.</div>
-      <a href="new_vip.html" class="module-link">Open Module</a>
+
+<header>
+  <h1>NetOps Toolbox</h1>
+  <p>Fast launchpad for Citrix NetScaler automation tools (ADC 13.1+). Optimized for GitHub Pages.</p>
+</header>
+
+<main>
+  <section class="grid">
+
+    <div class="card">
+      <div class="icon">⚙️</div>
+      <div class="title">VIP Creator</div>
+      <div class="desc">Create new virtual servers using standardized templates.</div>
+      <a class="link" href="new_vip.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128465;</div>
-      <div class="module-title">DCOMM Tool</div>
-      <div class="module-desc">Decommission resources – graceful & safe.</div>
-      <a href="vip_decomm_new.html" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">🗑️</div>
+      <div class="title">DCOMM Tool</div>
+      <div class="desc">Safely decommission VIPs with full rollback support.</div>
+      <a class="link" href="vip_decomm_new.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128274;</div>
-      <div class="module-title">Cert Update</div>
-      <div class="module-desc">Update SSL/TLS certs across sites.</div>
-      <a href="new_cert_mod.html" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">🔒</div>
+      <div class="title">Cert Update</div>
+      <div class="desc">Update SSL/TLS certificates across environments.</div>
+      <a class="link" href="new_cert_mod.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128202;</div>
-      <div class="module-title">Configuration Visualizer</div>
-      <div class="module-desc">Visualize usage, traffic & error events.</div>
-      <a href="Configuration Extractor Visualizer.html" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">📊</div>
+      <div class="title">Config Visualizer</div>
+      <div class="desc">Visualize NetScaler config, bindings, and relationships.</div>
+      <a class="link" href="Configuration Extractor Visualizer.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#10004;</div>
-      <div class="module-title">Service Group Modify</div>
-      <div class="module-desc">Modify pool members.</div>
-      <a href="updated_svc_13.1.html" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">✅</div>
+      <div class="title">Service Group Modify</div>
+      <div class="desc">Enable, disable, add, or remove pool members.</div>
+      <a class="link" href="updated_svc_13.1.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128295;</div>
-      <div class="module-title">Content Switching & URI</div>
-      <div class="module-desc">New content switching and URI rules.</div>
-      <a href="netscaler_play_with_uri.html" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">🧭</div>
+      <div class="title">CS & URI Rules</div>
+      <div class="desc">Build content-switching and URI-based logic.</div>
+      <a class="link" href="netscaler_play_with_uri.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128736;</div>
-      <div class="module-title">Upgrade NetScaler</div>
-      <div class="module-desc">MOP to upgrade NetScaler.</div>
-      <a href="upgrade 2.html" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">🛠️</div>
+      <div class="title">Upgrade NetScaler</div>
+      <div class="desc">Generate MOPs for ADC upgrades.</div>
+      <a class="link" href="upgrade 2.html">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128187;</div>
-      <div class="module-title">API Tester</div>
-      <div class="module-desc">Validate REST/JSON APIs, webhooks, payloads.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">🧪</div>
+      <div class="title">API Tester</div>
+      <div class="desc">Test REST / NITRO APIs with JSON payloads.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128230;</div>
-      <div class="module-title">SSL Checker</div>
-      <div class="module-desc">Inspect x.509 chains and expiry dates.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">📦</div>
+      <div class="title">SSL Checker</div>
+      <div class="desc">Inspect certificate chains and expiry details.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128161;</div>
-      <div class="module-title">Alert Builder</div>
-      <div class="module-desc">Auto-generate alert rules & wire actions.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">🧠</div>
+      <div class="title">Alert Builder</div>
+      <div class="desc">Auto-generate monitoring alerts.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#9989;</div>
-      <div class="module-title">Change Tracker</div>
-      <div class="module-desc">View changes, rollback deltas, compare configs.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">📝</div>
+      <div class="title">Change Tracker</div>
+      <div class="desc">Track config changes and generate rollbacks.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128421;</div>
-      <div class="module-title">Config Backup</div>
-      <div class="module-desc">Instant backup or restore for key configs.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">💾</div>
+      <div class="title">Config Backup</div>
+      <div class="desc">On-demand backup and restore.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128203;</div>
-      <div class="module-title">Usage Reports</div>
-      <div class="module-desc">Download daily/weekly/monthly reports.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">📈</div>
+      <div class="title">Usage Reports</div>
+      <div class="desc">Generate operational usage reports.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#9200;</div>
-      <div class="module-title">Maintenance Mode</div>
-      <div class="module-desc">One-touch service disable/enables for teams.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">⏱️</div>
+      <div class="title">Maintenance Mode</div>
+      <div class="desc">One-click maintenance enable / disable.</div>
+      <a class="link" href="#">Open</a>
     </div>
-    <div class="glass-card">
-      <div class="shine-effect"></div>
-      <div class="module-icon">&#128172;</div>
-      <div class="module-title">Feedback & Support</div>
-      <div class="module-desc">Contact NetOps directly from dashboard.</div>
-      <a href="#" class="module-link">Open Module</a>
+
+    <div class="card">
+      <div class="icon">💬</div>
+      <div class="title">Feedback & Support</div>
+      <div class="desc">Reach NetOps directly from the dashboard.</div>
+      <a class="link" href="#">Open</a>
     </div>
-  </div>
+
+  </section>
+</main>
+
+<footer>
+  NetOps Toolbox • Optimized for GitHub Pages
+</footer>
+
 </body>
 </html>
