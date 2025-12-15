@@ -1,142 +1,201 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>NetScaler Certificate Update Tool</title>
+  <meta charset="UTF-8" />
+  <title>THD – NetScaler Cert Update (Guided & Correct Parsing)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- NetScaler 13.1.x | THD MOP | PEM full-chain only -->
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 20px;
-      background: linear-gradient(to right, #f0f4f8, #d9e2ec);
-      color: #333;
+    :root{
+      --bg:#020617;--panel:#0f172a;--panel2:#020617;--border:#1e293b;
+      --text:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--accent2:#22c55e;--warn:#facc15;
+      --radius:14px;
     }
-    textarea, input {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      font-family: monospace;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      transition: box-shadow 0.3s;
-    }
-    textarea:focus, input:focus {
-      box-shadow: 0 0 5px rgba(0,123,255,0.5);
-      outline: none;
-    }
-    button {
-      padding: 12px 24px;
-      margin-top: 10px;
-      font-size: 16px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    pre {
-      background: #272822;
-      color: #f8f8f2;
-      padding: 20px;
-      white-space: pre-wrap;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-    .section {
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      animation: fadeInUp 0.6s ease;
-    }
-    h2, h3 {
-      color: #2c3e50;
-    }
-    @keyframes fadeInUp {
-      0% { opacity: 0; transform: translateY(20px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#020617;color:var(--text)}
+    header{max-width:1200px;margin:auto;padding:2rem 1.25rem 1rem}
+    header h1{font-size:clamp(1.7rem,3vw,2.3rem);font-weight:700}
+    header p{margin-top:.6rem;color:var(--muted);max-width:950px;line-height:1.5}
+    main{max-width:1200px;margin:auto;padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+    @media(max-width:900px){main{grid-template-columns:1fr}}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01)),var(--panel);
+      border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+    .panel h2{font-size:1.1rem;margin-bottom:.75rem;color:var(--accent)}
+    .step{font-size:.8rem;color:var(--warn);margin-bottom:.75rem}
+    label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.25rem}
+    textarea,input,select{width:100%;background:var(--panel2);border:1px solid var(--border);
+      border-radius:8px;padding:.6rem .7rem;color:var(--text);font-family:monospace;font-size:.8rem}
+    textarea{min-height:110px;resize:vertical}
+    .group{margin-bottom:1rem}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    button{padding:.6rem 1rem;font-weight:600;border-radius:8px;border:none;cursor:pointer;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));color:#020617}
+    button:hover{filter:brightness(1.1)}
+    pre{background:#020617;border:1px solid var(--border);border-radius:10px;padding:1rem;
+      white-space:pre-wrap;font-size:.78rem;line-height:1.45;max-height:65vh;overflow:auto}
+    .hint{font-size:.75rem;color:var(--muted)}
   </style>
 </head>
 <body>
 
-<h2>NetScaler Certificate Update MOP Generator</h2>
+<header>
+  <h1>THD – NetScaler Certificate Update (Guided, Correct)</h1>
+  <p>
+    Paste <code>show run | grep vserver</code>. Tool <strong>parses SSL vServer + certKeyBundle</strong>
+    from <code>bind ssl vserver</code> lines, then tells you <strong>exact commands to run next</strong>.
+    <br>NetScaler <strong>13.1.x</strong> • <strong>PEM full-chain only</strong> • CAB-safe.
+  </p>
+</header>
 
-<div class="section">
-  <label>Load Balancer Hostname:</label>
-  <input type="text" id="lbHost" placeholder="e.g. atl-qaern-lb01">
+<main>
 
-  <label>Output of <code>show lb vserver &lt;vserver&gt;</code>:</label>
-  <textarea id="vserverOutput" rows="8"></textarea>
+<!-- STEP 1 -->
+<section class="panel">
+  <h2>Step 1 – Paste vServer bindings</h2>
+  <div class="step">Run and paste:</div>
+  <pre>show run | grep vserver</pre>
 
-  <label>Output of <code>show run | grep &lt;certKeyName&gt;</code>:</label>
-  <textarea id="grepOutput" rows="6"></textarea>
+  <div class="group">
+    <label>CLI Output</label>
+    <textarea id="grepVs"></textarea>
+    <div class="hint">We look specifically for: <code>bind ssl vserver &lt;vs&gt; -certkeyBundleName &lt;bundle&gt;</code></div>
+  </div>
 
-  <label>New PEM Bundle File Name (e.g. new_cert.pem):</label>
-  <input type="text" id="pemFile">
+  <button onclick="parseBindings()">Parse SSL vServer</button>
+</section>
 
-  <label>PEM Passphrase:</label>
-  <input type="text" id="pemPass">
+<!-- STEP 2 -->
+<section class="panel">
+  <h2>Step 2 – Parsed details (locked)</h2>
+  <div class="step">Verify carefully. If wrong, fix Step 1 input.</div>
 
-  <label>Intermediate Cert File Name (optional):</label>
-  <input type="text" id="intermediateCert">
+  <div class="group">
+    <label>Detected SSL vServer</label>
+    <input id="vs" readonly />
+  </div>
 
-  <button onclick="generateMop()">Generate MOP</button>
-</div>
+  <div class="group">
+    <label>Detected certKeyBundle</label>
+    <input id="oldBundle" readonly />
+  </div>
 
-<div class="section">
-  <h3>Generated MOP:</h3>
-  <pre id="output"></pre>
-</div>
+  <div class="group">
+    <label>Next Commands to Run</label>
+    <pre id="nextCmd">Waiting…</pre>
+  </div>
+</section>
+
+<!-- STEP 3 -->
+<section class="panel">
+  <h2>Step 3 – Certificate inspection</h2>
+  <div class="step">Run both commands below and paste output</div>
+
+  <pre id="certCmd"></pre>
+
+  <div class="group">
+    <label>CLI Output</label>
+    <textarea id="certDetails"></textarea>
+  </div>
+</section>
+
+<!-- STEP 4 -->
+<section class="panel">
+  <h2>Step 4 – New Certificate & Bind Options</h2>
+
+  <div class="group">
+    <label>Appliance Name</label>
+    <input id="lb" placeholder="atl-qaern-lb01" />
+  </div>
+
+  <div class="row">
+    <div class="group">
+      <label>PEM Full-Chain File (to upload)</label>
+      <input id="pem" placeholder="_.apps.homedepot_com.pem" />
+    </div>
+    <div class="group">
+      <label>PEM Passphrase</label>
+      <input id="pass" placeholder="********" />
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="group">
+      <label>New certKeyBundle Name</label>
+      <input id="newBundle" placeholder="ir_homedepot" />
+    </div>
+    <div class="group">
+      <label>SNI Binding</label>
+      <select id="sni">
+        <option value="no">Do NOT use -SNICertkeyBundle</option>
+        <option value="yes">Use -SNICertkeyBundle (SNI)</option>
+      </select>
+    </div>
+  </div>
+
+  <button onclick="generateMOP()">Generate MOP</button>
+</section>
+
+<!-- OUTPUT -->
+<section class="panel">
+  <h2>Generated MOP</h2>
+  <pre id="out">Waiting…</pre>
+</section>
+
+</main>
 
 <script>
-function generateMop() {
-  const lbHost = document.getElementById('lbHost').value.trim();
-  const vserverOutput = document.getElementById('vserverOutput').value;
-  const grepOutput = document.getElementById('grepOutput').value;
-  const pemFile = document.getElementById('pemFile').value.trim();
-  const pemPass = document.getElementById('pemPass').value.trim();
-  const intermediateCert = document.getElementById('intermediateCert').value.trim();
+let vsName='', oldBundle='';
 
-  let vipLine = vserverOutput.split('\n').find(line => line.includes('lb-vs-')) || '';
-  let vipName = (vipLine.match(/lb-vs-[^\s]+/) || [])[0] || 'UNKNOWN_VIP';
+function parseBindings(){
+  const text=document.getElementById('grepVs').value;
+  const lines=text.split(/\n/);
 
-  // From grep output of certKeyName
-  let certKeyLine = grepOutput.split('\n').find(line => line.includes('add ssl certKey')) || '';
-  let oldCertKey = (certKeyLine.match(/add ssl certKey\s+(\S+)/) || [])[1];
-  let oldCrt = (certKeyLine.match(/-cert\s+(\S+)/) || [])[1];
-  let oldKey = (certKeyLine.match(/-key\s+(\S+)/) || [])[1];
+  // Correct parsing: bind ssl vserver <vs> -certkeyBundleName <bundle>
+  const bindLine=lines.find(l=>l.trim().startsWith('bind ssl vserver') && l.includes('-certkeyBundleName'));
+  if(!bindLine){alert('No SSL bind line found. Paste correct output.');return;}
 
-  if (!oldCertKey) oldCertKey = prompt("Couldn't find cert key name. Please enter it manually:");
-  if (!oldCrt) oldCrt = prompt("Couldn't find old .crt file name. Please enter it manually:");
-  if (!oldKey) oldKey = prompt("Couldn't find old .key file name. Please enter it manually:");
+  const m=bindLine.match(/bind ssl vserver\s+(\S+)\s+.*-certkeyBundleName\s+(\S+)/);
+  if(!m){alert('Unable to parse vServer or certKeyBundle');return;}
 
-  const newCertKeyBundle = oldCertKey + '_renewed_2025';
+  vsName=m[1];
+  oldBundle=m[2];
 
-  let deploy = `DEPLOY:\n========\n\n<${lbHost}>\n--------------------------\n\n` +
-    `unbind ssl vserver ${vipName} -certkeyName ${oldCertKey}\n` +
-    `add ssl certKeyBundle ${newCertKeyBundle} -cert -bundlefile ${pemFile} -passplain ${pemPass}\n` +
-    `bind ssl vserver ${vipName} -certkeyBundleName ${newCertKeyBundle}\n` +
-    `rm ssl certKey ${oldCertKey}\n\n` +
-    `save ns config`;
+  document.getElementById('vs').value=vsName;
+  document.getElementById('oldBundle').value=oldBundle;
 
-  let rollback = `ROLLBACK:\n=========\n\n<${lbHost}>\n--------------------------\n\n` +
-    `unbind ssl vserver ${vipName} -certkeyName ${newCertKeyBundle}\n` +
-    `add ssl certKey ${oldCertKey} -cert ${oldCrt} -key ${oldKey}\n`;
+  document.getElementById('nextCmd').textContent=
+    `show run | grep ${vsName}\nshow ssl certKeyBundle ${oldBundle}`;
 
-  if (intermediateCert) {
-    rollback += `link ssl certKey ${oldCertKey} ${intermediateCert}\n`;
-  }
-
-  rollback += `bind ssl vserver ${vipName} -certkeyName ${oldCertKey}\n` +
-              `rm ssl certKey ${newCertKeyBundle}\n\n` +
-              `save ns config`;
-
-  document.getElementById('output').textContent = deploy + '\n\n' + rollback;
+  document.getElementById('certCmd').textContent=
+    `show ssl certKeyBundle ${oldBundle}`;
 }
+
+function generateMOP(){
+  if(!vsName||!oldBundle){alert('Complete previous steps first');return;}
+
+  const lb=v('lb'), pem=v('pem'), pass=v('pass'), newB=v('newBundle');
+  const sni=document.getElementById('sni').value==='yes';
+
+  let deploy=`===================================================\nDEPLOY\n===================================================\n`+
+    `<${lb}> – DEPLOY\n\n`+
+    `unbind ssl vserver ${vsName} -certkeyBundleName ${oldBundle}\n`+
+    `add ssl certKeyBundle ${newB} -bundlefile ${pem} -passplain ${pass}\n`+
+    `bind ssl vserver ${vsName} -certkeyBundleName ${newB}`+(sni?' -SNICertkeyBundle':'')+`\n`+
+    `save ns config\n`;
+
+  let rollback=`\n===================================================\nROLLBACK\n===================================================\n`+
+    `<${lb}> – ROLLBACK\n\n`+
+    `unbind ssl vserver ${vsName} -certkeyBundleName ${newB}\n`+
+    `bind ssl vserver ${vsName} -certkeyBundleName ${oldBundle}`+(sni?' -SNICertkeyBundle':'')+`\n`+
+    `rm ssl certKeyBundle ${newB}\n`+
+    `save ns config\n`;
+
+  document.getElementById('out').textContent=deploy+rollback;
+}
+
+function v(id){return document.getElementById(id).value.trim()||'<<MISSING>>'}
 </script>
 
 </body>
